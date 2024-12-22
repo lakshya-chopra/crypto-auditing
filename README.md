@@ -19,35 +19,44 @@ The design documents can be found from the following links:
 ## Installation
 
 1. Install the latest Rust toolchain
-```console
-$ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
-$ export $PATH=$PATH:$HOME/.cargo/bin
-$ rustup toolchain install nightly --allow-downgrade --profile minimal --component clippy
+```sh
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
+export $PATH=$PATH:$HOME/.cargo/bin
+rustup toolchain install nightly --allow-downgrade --profile minimal --component clippy
 ```
 
 2. Install GnuTLS' dependencies:
-```console
-$ sudo apt install gperf autopoint libtool gtk-doc-tools
+```sh
+sudo apt install gperf autopoint libtool gtk-doc-tools
 ```
+- Next, install `libtasn.1` from [here](https://github.com/gnutls/libtasn1) and [gmplib](https://gmplib.org/):
+```sh
+wget https://gmplib.org/download/gmp/gmp-6.3.0.tar.xz
+tar xvf gmp-6.3.0.tar.xz
+./configure --prefix=/usr/local
+make -j
+sudo make install -j
+```
+- Make sure you add support for **PKCS #11** using [p11-kit](https://p11-glue.github.io/p11-glue/p11-kit.html)
 3.  Install the instrumented crypto libraries, such as GnuTLS:
-```console
-$ git clone --depth=1 -b wip/usdt https://gitlab.com/gnutls/gnutls.git
-$ ./bootstrap
-$ ./configure --prefix=/path/to/installation
-$ make -j$(nproc)
-$ sudo make install
+```sh
+git clone --depth=1 -b wip/usdt https://gitlab.com/gnutls/gnutls.git
+./bootstrap
+./configure --prefix=/path/to/installation --with-included-unistring
+make -j$(nproc)
+sudo make install
 ```
-3. Install the dependencies (note that libbpf 1.1.1 or later is required)
-```console
-$ sudo dnf install bpftool make libbpf-devel llvm-devel rustfmt
+4. Install the dependencies (note that libbpf 1.1.1 or later is required)
+```sh
+sudo dnf install bpftool make libbpf-devel llvm-devel rustfmt
 ```
-4. Build the programs with `make`
-```console
-$ make
+5. Build the programs with `make`
+```sh
+make
 ```
-5. Install the programs with `make install`
-```console
-$ sudo make install
+6. Install the programs with `make install`
+```sh
+sudo make install
 ```
 
 The first step requires `agent/src/bpf/vmlinux.h` to be populated. By
@@ -55,17 +64,17 @@ default it is done through BTF dump from the running kernel with
 `bpftool`, but if it is not supported in your system, it is possible
 to use `vmlinux.h` included in the `kernel-devel` package:
 
-```console
-$ sudo dnf install kernel-devel
-$ cp $(rpm -ql kernel-devel | grep '/vmlinux.h$' | tail -1) agent/src/bpf
+```sh
+sudo dnf install kernel-devel
+cp $(rpm -ql kernel-devel | grep '/vmlinux.h$' | tail -1) agent/src/bpf
 ```
 
 ## Running
 
 1. Create dedicated user and group (e.g., crypto-auditing:crypto-auditing)
-```console
-$ sudo groupadd crypto-auditing
-$ sudo useradd -g crypto-auditing
+```sh
+sudo groupadd crypto-auditing
+sudo useradd -g crypto-auditing
 ```
 2. Modify systemd configuration for agent in `/lib/systemd/system/crypto-auditing-agent.service`:
 ```ini
@@ -84,22 +93,22 @@ library = ["/path/to/installation/lib64/libgnutls.so.30"]
 user = "crypto-auditing:crypto-auditing"
 ```
 5. Enable agent and event-broker
-```console
-$ sudo systemctl daemon-reload
-$ sudo systemctl start crypto-auditing-agent.service
-$ sudo systemctl start crypto-auditing-event-broker.socket
+```sh
+sudo systemctl daemon-reload
+sudo systemctl start crypto-auditing-agent.service
+sudo systemctl start crypto-auditing-event-broker.socket
 ```
 6. Connect to event-broker with client
-```console
-$ crypto-auditing-client --scope tls --format json
-$ crypto-auditing-client --scope tls --format cbor --output audit.cborseq
+```sh
+crypto-auditing-client --scope tls --format json
+crypto-auditing-client --scope tls --format cbor --output audit.cborseq
 ```
 7. On another terminal, run any commands using the instrumented library
-```console
-$ gnutls-serv --x509certfile=doc/credentials/x509/cert-rsa-pss.pem --x509keyfile=doc/credentials/x509/key-rsa-pss.pem &
-$ gnutls-cli --x509cafile=doc/credentials/x509/ca.pem localhost -p 5556
-^C
-$ gnutls-cli --x509cafile=doc/credentials/x509/ca.pem localhost -p 5556 --priority NORMAL:-VERS-TLS1.3
+```sh
+gnutls-serv --x509certfile=doc/credentials/x509/cert-rsa-pss.pem --x509keyfile=doc/credentials/x509/key-rsa-pss.pem &
+gnutls-cli --x509cafile=doc/credentials/x509/ca.pem localhost -p 5556
+
+gnutls-cli --x509cafile=doc/credentials/x509/ca.pem localhost -p 5556 --priority NORMAL:-VERS-TLS1.3
 ```
 
 ## Inspecting logs
@@ -204,8 +213,8 @@ be installed with `gem install --user cbor-diag`.
 From the tree output, a flamegraph can be produced with the
 `scripts/flamegraph.py`:
 
-```console
-$ crypto-auditing-log-parser audit.cborseq | python scripts/flamegraph.py -
+```sh
+crypto-auditing-log-parser audit.cborseq | python scripts/flamegraph.py -
 dumping data to flamegraph.html
 ```
 
