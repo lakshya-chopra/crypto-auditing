@@ -19,7 +19,17 @@ The design documents can be found from the following links:
 ## Installation
 
 1. Install the latest Rust toolchain
-2. Install the instrumented crypto libraries, such as GnuTLS:
+```console
+$ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
+$ export $PATH=$PATH:$HOME/.cargo/bin
+$ rustup toolchain install nightly --allow-downgrade --profile minimal --component clippy
+```
+
+2. Install GnuTLS' dependencies:
+```console
+$ sudo apt install gperf autopoint libtool gtk-doc-tools
+```
+3.  Install the instrumented crypto libraries, such as GnuTLS:
 ```console
 $ git clone --depth=1 -b wip/usdt https://gitlab.com/gnutls/gnutls.git
 $ ./bootstrap
